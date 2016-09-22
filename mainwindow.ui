@@ -29,6 +29,16 @@
             <property name="text">
              <string>Start Streaming</string>
             </property>
+            <property name="icon">
+             <iconset resource="images.qrc">
+              <normaloff>:/images/start.png</normaloff>:/images/start.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>24</width>
+              <height>24</height>
+             </size>
+            </property>
            </widget>
           </item>
           <item row="0" column="1">
@@ -45,6 +55,16 @@
            <widget class="QPushButton" name="pushButtonStopStreaming">
             <property name="text">
              <string>Stop Streaming</string>
+            </property>
+            <property name="icon">
+             <iconset resource="images.qrc">
+              <normaloff>:/images/stop.png</normaloff>:/images/stop.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>24</width>
+              <height>24</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -104,12 +124,32 @@ when get a new connection.</string>
          <property name="text">
           <string>Connect Myo</string>
          </property>
+         <property name="icon">
+          <iconset resource="images.qrc">
+           <normaloff>:/images/connect.png</normaloff>:/images/connect.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>24</width>
+           <height>24</height>
+          </size>
+         </property>
         </widget>
        </item>
        <item row="3" column="0">
         <widget class="QPushButton" name="pushButtonClear">
          <property name="text">
           <string>Clear</string>
+         </property>
+         <property name="icon">
+          <iconset resource="images.qrc">
+           <normaloff>:/images/trash.png</normaloff>:/images/trash.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>24</width>
+           <height>24</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -269,6 +309,8 @@ when get a new connection.</string>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="images.qrc"/>
+ </resources>
  <connections/>
 </ui>

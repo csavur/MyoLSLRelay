@@ -28,3 +28,6 @@ win32: LIBS += -L$$PWD/lib/ -lmyo32
 
 INCLUDEPATH += $$PWD/include
 DEPENDPATH += $$PWD/include
+
+RESOURCES += \
+    images.qrc
