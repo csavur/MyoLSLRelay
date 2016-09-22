@@ -16,6 +16,9 @@
 
 #include <myo/myo.hpp>
 
+#define COLUMN_SIZE (9)
+
+
 //------------------------------------------------------------------------
 // Callback function pointer.
 typedef void (*CallbackFunctionPtr)(void*, int);
@@ -24,9 +27,9 @@ class DataCollector : public myo::DeviceListener {
 public:
     DataCollector();
 
-    virtual void onConnect(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion);
-
-    // onUnpair() is called whenever the Myo is disconnected from Myo Connect by the user.textEditEMGResult
+    virtual void onPair(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion);
+    virtual void onConnect(myo::Myo *myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion);
+    virtual void onDisconnect(myo::Myo *myo, uint64_t timestamp);
     virtual void onUnpair(myo::Myo* myo, uint64_t timestamp);
     virtual void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose);
     virtual void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& rotation);
@@ -39,7 +42,7 @@ public:
     void print();
 
     // The values of this array is set by onEmgData() above.
-    std::array<int8_t, 8> emgSamples;
+    std::array<int8_t, COLUMN_SIZE> emgSamples;
     myo::Quaternion<float> rotation;
     myo::Pose pose;
 
@@ -65,6 +68,13 @@ public:
     myo::Pose getPose() const;
     void setPose(const myo::Pose &value);
 
+
+    // This is a utility function implemented for this sample that maps a myo::Myo* to a unique ID starting at 1.
+    // It does so by looking for the Myo pointer in knownMyos, which onPair() adds each Myo into as it is paired.
+    size_t identifyMyo(myo::Myo* myo);
+
+    int howManyMyo();
+
 private:
     int counter;
 
@@ -82,6 +92,10 @@ private:
     CallbackFunctionPtr m_Posecb;
     // The additional pointer they provided (it's "this").
     void *m_Posep;
+
+    // We store each Myo pointer that we pair with in this list, so that we can keep track of the order we've seen
+    // each Myo and give it a unique short identifier (see onPair() and identifyMyo() above).
+    std::vector<myo::Myo*> knownMyos;
 };
 
 #endif // DATACOLLECTOR_H

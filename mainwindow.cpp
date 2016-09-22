@@ -8,7 +8,7 @@
 #include <QMessageBox>
 #include <QFile>
 
-#define M_PI  (3.1418)
+#define M_PI (3.14159265)
 
 using namespace std;
 using namespace myo;
@@ -18,11 +18,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 {
     ui->setupUi(this);
 
+    ui->checkBoxAutoStart->setChecked(true);
+
     poseEnum = -1;
+    hub = NULL;
 
     isRunning = false;
     ui->widgetControlPanel->setEnabled(false);
-
 
     connect(&tcpServer, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
     haveAconnection = false;
@@ -35,7 +37,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 MainWindow::~MainWindow()
 {
     qDebug() << "~MainWindow()";
-    delete hub;
+    if(hub)
+        delete hub;
     delete ui;
 }
 
@@ -81,14 +84,13 @@ void MainWindow::callbackFunctionEMG(int i)
     ui->textEditEMGResult->verticalScrollBar()->setValue(ui->textEditEMGResult->verticalScrollBar()->maximum());
 }
 
-void MainWindow::onGYROCallbackFunction(void *p, int i)
+void MainWindow::onGYROCallbackFunction(void *p, int deviceID)
 {
-    ((MainWindow *)p)->callbackFunctionGYRO(i);
+    ((MainWindow *)p)->callbackFunctionGYRO(deviceID);
 }
 
-void MainWindow::callbackFunctionGYRO(int i)
+void MainWindow::callbackFunctionGYRO(int deviceID)
 {
-    Q_UNUSED(i);
 
     const myo::Quaternion<float>& quat = dataCollector.getRotation();
 
@@ -108,7 +110,7 @@ void MainWindow::callbackFunctionGYRO(int i)
     yaw_w = static_cast<int>((yaw + (float)M_PI)/(M_PI * 2.0f) * 18);
 
     QString gyro;
-    gyro.append("roll :" + QString::number(roll_w) + " pithc :" + QString::number(pitch_w) + " yaw :" + QString::number(yaw_w));
+    gyro.append( "device :" + QString::number(deviceID)+ " roll :" + QString::number(roll_w) + " pithc :" + QString::number(pitch_w) + " yaw :" + QString::number(yaw_w));
     ui->textEditGYROResult->append(gyro);
 }
 
@@ -151,12 +153,13 @@ void MainWindow::callbackFunctionPose(int i)
     poseEnum = (int)dataCollector.getPose().type();
 }
 
-void MainWindow::readEMG()
+void MainWindow::registerCallback()
 {
     dataCollector.resetCounter();
     dataCollector.registerEMGCallback(MainWindow::onEMGCallbackFunction, this);
     dataCollector.registerGYROCallback(MainWindow::onGYROCallbackFunction, this);
     dataCollector.registerPoseCallback(MainWindow::onPoseCallbackFunction, this);
+
     while (isRunning) {
         hub->runOnce(1);  // 1000 is per sec
         // NOTE when EMG data is available controller will triger the callback function
@@ -167,7 +170,7 @@ void MainWindow::readEMG()
 void MainWindow::on_pushButtonStartStreaming_clicked()
 {
     isRunning = true;
-    readEMG();
+    registerCallback();
 }
 
 void MainWindow::on_pushButtonStopStreaming_clicked()
@@ -193,7 +196,7 @@ void MainWindow::acceptConnection()
 
     if(ui->checkBoxAutoStart->isChecked()) {
         isRunning = true;
-        readEMG();
+        registerCallback();
     }
 }
 
@@ -292,41 +295,11 @@ void MainWindow::on_pushButtonConnect_clicked()
     // if connection is ok
     if(connectionStatus) {
         ui->widgetControlPanel->setEnabled(true);
-        //ui->pushButtonConnect->setEnabled(false);
+        ui->pushButtonConnect->setEnabled(false);
+
+
+        //ui->label->setText(QString::number(dataCollector.howManyMyo()));
     }
-}
-
-void MainWindow::on_pushButtonTest_clicked()
-{
-    buffer.clear();
-
-    buffer.append("-1, 0, -1, -17, -5, -1, -2, 1,");
-
-    sendData();
-}
-
-void MainWindow::on_checkBoxAutoStart_clicked(bool checked)
-{
-    ui->pushButtonTest->setEnabled(!checked);
-}
-
-void MainWindow::on_pushButtonDataSet_clicked()
-{
-    QFile file("C:/Users/cs1323/Documents/GitHub/workspace/ASL_code/csvlist.csv");
-
-    file.open(QIODevice::ReadOnly);
-    QTextStream stream(&file);
-    while (!stream.atEnd()){
-        QString s = stream.readLine(); // reads line from file
-        chData.append(s.split(",")); // appends first column to list, ',' is separator
-    }
-    file.close();
-
-    connect(&timer, SIGNAL(timeout()), this,SLOT(timerTimeOut()));
-
-    timer.start(250);
-
-    poseEnum = 5;
 }
 
 void MainWindow::timerTimeOut()

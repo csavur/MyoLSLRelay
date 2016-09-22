@@ -89,24 +89,6 @@
         </widget>
        </item>
        <item row="4" column="0">
-        <widget class="QPushButton" name="pushButtonTest">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is just send a single data line to socket...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Test</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QCheckBox" name="checkBoxAutoStart">
-         <property name="text">
-          <string>Auto start Streming 
-when get a new connection.</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -118,23 +100,6 @@ when get a new connection.</string>
           </size>
          </property>
         </spacer>
-       </item>
-       <item row="1" column="0">
-        <widget class="QPushButton" name="pushButtonConnect">
-         <property name="text">
-          <string>Connect Myo</string>
-         </property>
-         <property name="icon">
-          <iconset resource="images.qrc">
-           <normaloff>:/images/connect.png</normaloff>:/images/connect.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>24</width>
-           <height>24</height>
-          </size>
-         </property>
-        </widget>
        </item>
        <item row="3" column="0">
         <widget class="QPushButton" name="pushButtonClear">
@@ -153,10 +118,28 @@ when get a new connection.</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
-        <widget class="QPushButton" name="pushButtonDataSet">
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="checkBoxAutoStart">
          <property name="text">
-          <string>Send Dataset</string>
+          <string>Auto start Streming 
+when get a new connection.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="pushButtonConnect">
+         <property name="text">
+          <string>Connect Myo</string>
+         </property>
+         <property name="icon">
+          <iconset resource="images.qrc">
+           <normaloff>:/images/connect.png</normaloff>:/images/connect.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>24</width>
+           <height>24</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -181,7 +164,7 @@ when get a new connection.</string>
        <property name="bottomMargin">
         <number>2</number>
        </property>
-       <item row="0" column="0" rowspan="2">
+       <item row="1" column="0" rowspan="2">
         <widget class="QGroupBox" name="groupBox_3">
          <property name="title">
           <string>EMG Data</string>
@@ -205,7 +188,7 @@ when get a new connection.</string>
          </layout>
         </widget>
        </item>
-       <item row="0" column="1">
+       <item row="1" column="1">
         <widget class="QGroupBox" name="groupBox_4">
          <property name="title">
           <string>Gyro Data</string>
@@ -235,7 +218,7 @@ when get a new connection.</string>
          </layout>
         </widget>
        </item>
-       <item row="1" column="1">
+       <item row="2" column="1">
         <widget class="QGroupBox" name="groupBox_5">
          <property name="title">
           <string>Known Poses</string>
@@ -263,6 +246,13 @@ when get a new connection.</string>
            </widget>
           </item>
          </layout>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="labelStatus">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
         </widget>
        </item>
       </layout>

@@ -27,30 +27,25 @@ public:
     static void onEMGCallbackFunction(void *p, int i);
     void callbackFunctionEMG(int i);
 
-    static void onGYROCallbackFunction(void *p, int i);
-    void callbackFunctionGYRO(int i);
+    static void onGYROCallbackFunction(void *p, int deviceID);
+    void callbackFunctionGYRO(int deviceID);
 
     static void onPoseCallbackFunction(void *p, int i);
     void callbackFunctionPose(int i);
 
-
 private slots:
     void on_pushButtonConnect_clicked();
-    void readEMG();
     void on_pushButtonStartStreaming_clicked();
     void on_pushButtonStopStreaming_clicked();
     void on_pushButtonClear_clicked();
     void acceptConnection();
 
     QString addPoseGyroInfo();
+
+    void registerCallback();
     void sendData();
 
-    void on_pushButtonTest_clicked();
-    void on_checkBoxAutoStart_clicked(bool checked);
-    void on_pushButtonDataSet_clicked();
-
     void timerTimeOut();
-
     void slotOpenAbout();
 
 
