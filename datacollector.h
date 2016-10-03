@@ -33,6 +33,7 @@ public:
     virtual void onUnpair(myo::Myo* myo, uint64_t timestamp);
     virtual void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose);
     virtual void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& rotation);
+    virtual void onAccelerometerData(myo::Myo* myo, uint64_t timestamp, const myo::Vector3<float>& accel);
     virtual void onEmgData(myo::Myo* myo, uint64_t timestamp, const int8_t* emg);
 
     // There are other virtual functions in DeviceListener that we could override here, like onAccelerometerData().
@@ -44,6 +45,7 @@ public:
     // The values of this array is set by onEmgData() above.
     std::array<int8_t, COLUMN_SIZE> emgSamples;
     myo::Quaternion<float> rotation;
+    myo::Vector3<float> m_accelData;
     myo::Pose pose;
 
     std::vector<int> getData();
@@ -54,11 +56,13 @@ public:
     // an extra pointer value which will be included when they are called.
     void registerEMGCallback(CallbackFunctionPtr cb, void *p);
     void registerGYROCallback(CallbackFunctionPtr cb, void *p);
+    void registerAccelCallback(CallbackFunctionPtr cb, void *p);
     void registerPoseCallback(CallbackFunctionPtr cb, void *p);
 
     // Test the callback to make sure it works.
     void onEMGCallback(int index);
     void onGYROCallback(int index);
+    void onAccelCallback(int index);
     void onPoseCallback(int index);
 
 
@@ -75,6 +79,8 @@ public:
 
     int howManyMyo();
 
+    myo::Vector3<float> getAccelData() const;
+
 private:
     int counter;
 
@@ -87,6 +93,11 @@ private:
     CallbackFunctionPtr m_GYROcb;
     // The additional pointer they provided (it's "this").
     void *m_GYROp;
+
+    // The callback provided by the client via connectCallback().
+    CallbackFunctionPtr m_Accelcb;
+    // The additional pointer they provided (it's "this").
+    void *m_Accelp;
 
     // The callback provided by the client via connectCallback().
     CallbackFunctionPtr m_Posecb;

@@ -60,12 +60,12 @@ void MainWindow::callbackFunctionEMG(int i)
     qApp->processEvents();
     QString d;
     for (size_t i = 0; i < dataCollector.emgSamples.size(); i++) {
-        d.append(QString::number(static_cast<int>(dataCollector.emgSamples[i])) + QString(", "));
+        d.append(QString::number(static_cast<int>(dataCollector.emgSamples[i])) + QString(","));
     }
 
-    if (buffer.size() == nSamples) {
+    if (emg_buffer.size() == nSamples) {
         // send matlab
-        QString txt  = buffer.join("\n");
+        QString txt  = emg_buffer.join("\n");
         txt.append("\n");
 
         if (ui->checkBoxResult->isChecked()) {
@@ -74,11 +74,11 @@ void MainWindow::callbackFunctionEMG(int i)
 
         sendData();
 
-        buffer.clear();
+        emg_buffer.clear();
         ui->textEditEMGResult->append(tr("%1 samples Data sent to matlab... Time stamp : %2 ms").arg(nSamples).arg(timeStamp.elapsed()));
         timeStamp.restart();
     } else {
-        buffer.append(d);
+        emg_buffer.append(d);
     }
 
     ui->textEditEMGResult->verticalScrollBar()->setValue(ui->textEditEMGResult->verticalScrollBar()->maximum());
@@ -111,7 +111,27 @@ void MainWindow::callbackFunctionGYRO(int deviceID)
 
     QString gyro;
     gyro.append( "device :" + QString::number(deviceID)+ " roll :" + QString::number(roll_w) + " pithc :" + QString::number(pitch_w) + " yaw :" + QString::number(yaw_w));
-    ui->textEditGYROResult->append(gyro);
+   // ui->textEditGYROResult->append(gyro);
+}
+
+void MainWindow::onAccelCallbackFunction(void *p, int deviceID)
+{
+    ((MainWindow *)p)->callbackFunctionAccel(deviceID);
+}
+
+void MainWindow::callbackFunctionAccel(int deviceID)
+{
+    myo::Vector3<float> accelData = dataCollector.getAccelData();
+
+    QString data;
+
+
+    data.append(QString::number(deviceID) + ", " +
+                QString::number(accelData.x()) + ", " +
+                QString::number(accelData.y()) + ", " +
+                QString::number(accelData.z()) + ", 0, 0, 0, 0, 0,");
+
+    accel_buffer.append(data);
 }
 
 void MainWindow::onPoseCallbackFunction(void *p, int i)
@@ -158,6 +178,7 @@ void MainWindow::registerCallback()
     dataCollector.resetCounter();
     dataCollector.registerEMGCallback(MainWindow::onEMGCallbackFunction, this);
     dataCollector.registerGYROCallback(MainWindow::onGYROCallbackFunction, this);
+    dataCollector.registerAccelCallback(MainWindow::onAccelCallbackFunction, this);
     dataCollector.registerPoseCallback(MainWindow::onPoseCallbackFunction, this);
 
     while (isRunning) {
@@ -227,19 +248,24 @@ void MainWindow::sendData()
 
             if(poseEnum != -1) {
                 QString poseString = addPoseGyroInfo();
-                buffer.prepend(poseString);
+                emg_buffer.prepend(poseString);
                 qDebug() << "pose sent...";
             }
 
-            //
-            QString txt  = buffer.join(" ");
-            byteArray.append(txt);
-
+            QString emgData  = emg_buffer.join(" ");
+            qDebug() << "size emg   : " << emg_buffer.size();
+            byteArray.append(emgData);
+            QString accelData = accel_buffer.join(" ");
+            byteArray.append(accelData);
+            qDebug() << "size accel : " << accel_buffer.size();
             byteArray.append("\n");
             tcpServerConnection->write(byteArray);
             tcpServerConnection->flush();
 
             qDebug() << "size buffer" <<byteArray.size();
+
+            emg_buffer.clear();
+            accel_buffer.clear();
         }
     }
 }
@@ -300,31 +326,6 @@ void MainWindow::on_pushButtonConnect_clicked()
 
         //ui->label->setText(QString::number(dataCollector.howManyMyo()));
     }
-}
-
-void MainWindow::timerTimeOut()
-{
-    // Each time will send the 50x8 data to matlab
-    static int counter = 0;
-    qDebug() << counter;
-    if(counter == 160) {
-        timer.stop();
-        counter = 0;
-    }
-
-    if(haveAconnection) {
-        for (int i = (0 + counter*50); i < (counter*50 + 50) ; ++i) {
-            QString row;
-            for (int j = 0; j < 8; ++j) {
-                row.append(chData.at(j).at(i) + ", ");
-            }
-            buffer.append(row);
-            row.clear();
-        }
-    }
-    sendData();
-    counter++;
-    buffer.clear();
 }
 
 void MainWindow::slotOpenAbout()

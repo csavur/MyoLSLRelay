@@ -24,11 +24,15 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    // Callback function will be invoiked by Myo sdk
     static void onEMGCallbackFunction(void *p, int i);
     void callbackFunctionEMG(int i);
 
     static void onGYROCallbackFunction(void *p, int deviceID);
     void callbackFunctionGYRO(int deviceID);
+
+    static void onAccelCallbackFunction(void *p, int deviceID);
+    void callbackFunctionAccel(int deviceID);
 
     static void onPoseCallbackFunction(void *p, int i);
     void callbackFunctionPose(int i);
@@ -45,7 +49,6 @@ private slots:
     void registerCallback();
     void sendData();
 
-    void timerTimeOut();
     void slotOpenAbout();
 
 
@@ -60,7 +63,8 @@ private:
     myo::Hub *hub;
 
     bool isRunning;
-    QStringList buffer;
+    QStringList emg_buffer;
+    QStringList accel_buffer;
 
 
     QTcpServer tcpServer;

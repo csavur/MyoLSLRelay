@@ -81,6 +81,12 @@ void DataCollector::onOrientationData(myo::Myo *myo, uint64_t timestamp, const m
     onGYROCallback(identifyMyo(myo));
 }
 
+void DataCollector::onAccelerometerData(myo::Myo *myo, uint64_t timestamp, const myo::Vector3<float> &accel)
+{
+    this->m_accelData = accel;
+    onAccelCallback(identifyMyo(myo));
+}
+
 void DataCollector::onEmgData(myo::Myo *myo, uint64_t timestamp, const int8_t *emg)
 {
     counter++;
@@ -110,6 +116,12 @@ void DataCollector::registerGYROCallback(CallbackFunctionPtr cb, void *p)
     m_GYROp = p;
 }
 
+void DataCollector::registerAccelCallback(CallbackFunctionPtr cb, void *p)
+{
+    m_Accelcb = cb;
+    m_Accelp = p;
+}
+
 void DataCollector::registerPoseCallback(CallbackFunctionPtr cb, void *p)
 {
     m_Posecb = cb;
@@ -124,6 +136,11 @@ void DataCollector::onEMGCallback(int index)
 void DataCollector::onGYROCallback(int index)
 {
     m_GYROcb(m_GYROp, index);
+}
+
+void DataCollector::onAccelCallback(int index)
+{
+    m_Accelcb(m_Accelp, index);
 }
 
 void DataCollector::onPoseCallback(int index)
@@ -150,6 +167,11 @@ void DataCollector::print()
 
     std::cout << counter;
     std::cout << std::flush;
+}
+
+myo::Vector3<float> DataCollector::getAccelData() const
+{
+    return m_accelData;
 }
 myo::Pose DataCollector::getPose() const
 {
