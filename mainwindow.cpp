@@ -26,9 +26,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     isRunning = false;
     ui->widgetControlPanel->setEnabled(false);
 
-    connect(&tcpServer, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
     haveAconnection = false;
     tcpServer.listen(QHostAddress::AnyIPv4, 2000);
+
+    connect(&tcpServer, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
 
     connect(ui->actionAbout, SIGNAL(triggered(bool)), this, SLOT(slotOpenAbout()));
     connect(ui->actionAboutQt, SIGNAL(triggered(bool)), qApp, SLOT(aboutQt()));
@@ -210,7 +211,7 @@ void MainWindow::acceptConnection()
 {
     tcpServerConnection = tcpServer.nextPendingConnection();
 
-    connect(tcpServerConnection, SIGNAL(disconnected()), this, SLOT(on_pushButtonStopStreaming_clicked()));
+    connect(tcpServerConnection, SIGNAL(disconnected()), this, SLOT(lostConnection()));
     qDebug() << "Got a new Connection" ;
 
     haveAconnection = true;
@@ -219,6 +220,13 @@ void MainWindow::acceptConnection()
         isRunning = true;
         registerCallback();
     }
+}
+
+void MainWindow::lostConnection()
+{
+    // reset variables after connection lost
+    tcpServerConnection = NULL;
+    haveAconnection = false;
 }
 
 QString MainWindow::addPoseGyroInfo()
@@ -246,11 +254,11 @@ void MainWindow::sendData()
         if(tcpServerConnection) {
             QByteArray byteArray;
 
-            if(poseEnum != -1) {
-                QString poseString = addPoseGyroInfo();
-                emg_buffer.prepend(poseString);
-                qDebug() << "pose sent...";
-            }
+//            if(poseEnum != -1) {
+//                QString poseString = addPoseGyroInfo();
+//                emg_buffer.prepend(poseString);
+//                qDebug() << "pose sent...";
+//            }
 
             QString emgData  = emg_buffer.join(" ");
             qDebug() << "size emg   : " << emg_buffer.size();
@@ -286,6 +294,7 @@ void MainWindow::on_pushButtonConnect_clicked()
         // First, we create a Hub with our application identifier. Be sure not to use the com.example namespace when
         // publishing your application. The Hub provides access to one or more Myos.
         hub = new myo::Hub("com.example.emg-data-sample");
+        hub->setLockingPolicy(hub->lockingPolicyNone);
 
         //std::cout << "Attempting to find a Myo..." << std::endl;
         ui->textEditEMGResult->setText("Attempting to find a Myo...");

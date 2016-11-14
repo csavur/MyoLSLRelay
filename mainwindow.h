@@ -42,7 +42,9 @@ private slots:
     void on_pushButtonStartStreaming_clicked();
     void on_pushButtonStopStreaming_clicked();
     void on_pushButtonClear_clicked();
+
     void acceptConnection();
+    void lostConnection();
 
     QString addPoseGyroInfo();
 
