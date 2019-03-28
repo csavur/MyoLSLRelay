@@ -3,10 +3,58 @@
 
 using namespace std;
 
-DataCollector::DataCollector(): emgSamples()
+DataCollector::DataCollector(QObject *parent): QObject(parent)
 {
-    emgSamples.fill(0);
-    counter = 0;
+    createLSLStreams();
+}
+
+void DataCollector::createLSLStreams()
+{
+    /// [0 EMG]
+    const char *channels[] = {"ID","CH0","CH1","CH2","CH3","CH4","CH5","CH6","CH7"};
+    const char *units[] = {"int","mV","mV","mV","mV","mV","mV","mV","mV"};
+    const char *types[] = {"DeviceID","EMG","EMG","EMG","EMG","EMG","EMG","EMG","EMG"};
+    // make a new EMG stream_info (200 Hz)
+    lsl::stream_info info("MyoEMG", "EMG", 9, 200, lsl::cf_int16, "id123456");
+    // add some description fields
+    info.desc().append_child_value("ThamicLab", "MyoArmBand");
+    lsl::xml_element chns = info.desc().append_child("channels");
+
+    for (int i=0; i<9; i++) {
+        chns.append_child("channel")
+        .append_child_value("label", channels[i])
+        .append_child_value("unit", units[i])
+        .append_child_value("type", types[i]);
+    }
+    // make a new outlet
+    outletEMG = new lsl::stream_outlet(info);
+    /// [EMG]
+
+    /// [POSE]
+    lsl::stream_info infoPose("MyoPose", "Markers", 1, lsl::IRREGULAR_RATE, lsl::cf_string, "id23443");
+    outletPose = new lsl::stream_outlet(infoPose);
+
+    /// Accelerometer
+    const char *channelsAc[] = {"ID","roll","pitch","yaw"};
+    lsl::stream_info infoAccel("MyoAccel", "RAW", 4, 50, lsl::cf_float32, "id23444");
+    infoAccel.desc().append_child_value("ThamicLab", "MyoArmBand");
+    lsl::xml_element chnsAcel = infoAccel.desc().append_child("channels");
+    for (int i=0; i<4; i++) {
+        chnsAcel.append_child("channel")
+        .append_child_value("label", channelsAc[i]);
+    }
+    outletAccel = new lsl::stream_outlet(infoAccel);
+
+    /// Orientation
+    const char *channelsOri[] = {"ID","x","y","z"};
+    lsl::stream_info infoOri("MyoOrient", "RAW", 4, 50, lsl::cf_float32, "id23445");
+    infoOri.desc().append_child_value("ThamicLab", "MyoArmBand");
+    lsl::xml_element chnsOri = infoOri.desc().append_child("channels");
+    for (int i=0; i<4; i++) {
+        chnsOri.append_child("channel")
+        .append_child_value("label", channelsOri[i]);
+    }
+    outletOrient = new lsl::stream_outlet(infoOri);
 }
 
 void DataCollector::onPair(myo::Myo *myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion)
@@ -34,153 +82,85 @@ void DataCollector::onConnect(myo::Myo *myo, uint64_t timestamp, myo::FirmwareVe
 void DataCollector::onDisconnect(myo::Myo* myo, uint64_t timestamp)
 {
     std::cout << "Myo " << identifyMyo(myo) << " has disconnected." << std::endl;
-}
-
-void DataCollector::onUnpair(myo::Myo *myo, uint64_t timestamp)
-{
-    // We've lost a Myo.
-    // Let's clean up some leftover state.
-    emgSamples.fill(0);
+    emit connectionLost();
 }
 
 void DataCollector::onPose(myo::Myo *myo, uint64_t timestamp, myo::Pose pose)
 {
-    //    //cout << "onPose" << endl;
-    //    switch (pose.type()) {
-    //    case myo::Pose::rest:
-    //        cout << "rest" << endl;
-    //        break;
-    //    case myo::Pose::fist:
-    //        cout << "rest" << endl;
-//        break;
-//    case myo::Pose::waveIn:
-//        cout << "wave in" << endl;
-//        break;
-//    case myo::Pose::waveOut:
-//        cout << "wave out" << endl;
-//        break;
-//    case myo::Pose::fingersSpread:
-//        cout << "finger Spread" << endl;
-//        break;
-//    default:
-//        cout << "Unknown gesture" << endl;
-//        break;
-//    }
-
-//    std::cout << "Myo " << identifyMyo(myo) << " switched to pose " << pose.toString() << "." << std::endl;
-
-    this->pose = pose;
-    onPoseCallback(counter);
+    Q_UNUSED(myo);
+    std::string marker;
+    switch (pose.type()) {
+    case myo::Pose::rest:
+        marker = "rest";
+        break;
+    case myo::Pose::fist:
+        marker = "fist";
+        break;
+    case myo::Pose::waveIn:
+        marker = "wave_in";
+        break;
+    case myo::Pose::waveOut:
+        marker = "wave_out";
+        break;
+    case myo::Pose::fingersSpread:
+        marker = "finger_spread";
+        break;
+    case myo::Pose::doubleTap:
+        marker = "double_tab";
+        break;
+    default:
+        marker = "unknown_gesture";
+        break;
+    }
+    outletPose->push_sample(&marker, timestamp);
 }
 
 void DataCollector::onOrientationData(myo::Myo *myo, uint64_t timestamp, const myo::Quaternion<float> &rotation)
 {
-    //cout << "x :" << rotation.x() << "y :" << rotation.y() << "z :" << rotation.z() << "w :" << rotation.w() << endl;
+    //std::cout << "Orientation" << endl;
+    std::vector<float> oriData;
+    oriData.push_back((float)static_cast<int>(identifyMyo(myo)));
 
-    this->rotation = rotation;
-    onGYROCallback(identifyMyo(myo));
+    using std::atan2;
+    using std::asin;
+    using std::sqrt;
+    using std::max;
+    using std::min;
+
+    // Calculate Euler angles (roll, pitch, and yaw) from the unit quaternion.
+    float roll = atan2(2.0f * (rotation.w() * rotation.x() + rotation.y() * rotation.z()),
+     1.0f - 2.0f * (rotation.x() * rotation.x() + rotation.y() * rotation.y()));
+    float pitch = asin(max(-1.0f, min(1.0f, 2.0f * (rotation.w() * rotation.y() - rotation.z() * rotation.x()))));
+    float yaw = atan2(2.0f * (rotation.w() * rotation.z() + rotation.x() * rotation.y()),
+     1.0f - 2.0f * (rotation.y() * rotation.y() + rotation.z() * rotation.z()));
+
+    oriData.push_back(roll);
+    oriData.push_back(pitch);
+    oriData.push_back(yaw);
+
+    outletOrient->push_sample(oriData, timestamp);
 }
 
 void DataCollector::onAccelerometerData(myo::Myo *myo, uint64_t timestamp, const myo::Vector3<float> &accel)
 {
-    this->m_accelData = accel;
-    onAccelCallback(identifyMyo(myo));
+    //std::cout << "Accelerometer" << endl;
+    std::vector<float> accelData;
+    accelData.push_back((float)static_cast<int>(identifyMyo(myo)));
+    accelData.push_back(accel.x());
+    accelData.push_back(accel.y());
+    accelData.push_back(accel.z());
+    outletAccel->push_sample(accelData, timestamp);
 }
 
 void DataCollector::onEmgData(myo::Myo *myo, uint64_t timestamp, const int8_t *emg)
 {
-    counter++;
-    //std::cout << "Myo " << identifyMyo(myo) << " : " << endl;
-
-    //! First column indicate device id
-    emgSamples[0] = identifyMyo(myo);
-    for (int i = 0; i < 8; i++) {
-        emgSamples[i + 1] = emg[i];
+    //std::cout << "EMG" << endl;
+    std::vector<int> emgVal;
+    emgVal.push_back(identifyMyo(myo));
+    for (int i = 0; i < 8; ++i) {
+        emgVal.push_back(emg[i]);
     }
-
-    // there is a new reading
-    onEMGCallback(counter);
-}
-
-// Clients can connect their callback with this.  They can provide
-// an extra pointer value which will be included when they are called.
-void DataCollector::registerEMGCallback(CallbackFunctionPtr cb, void *p)
-{
-    m_EMGcb = cb;
-    m_EMGp = p;
-}
-
-void DataCollector::registerGYROCallback(CallbackFunctionPtr cb, void *p)
-{
-    m_GYROcb = cb;
-    m_GYROp = p;
-}
-
-void DataCollector::registerAccelCallback(CallbackFunctionPtr cb, void *p)
-{
-    m_Accelcb = cb;
-    m_Accelp = p;
-}
-
-void DataCollector::registerPoseCallback(CallbackFunctionPtr cb, void *p)
-{
-    m_Posecb = cb;
-    m_Posep = p;
-}
-
-void DataCollector::onEMGCallback(int index)
-{
-    m_EMGcb(m_EMGp, index);
-}
-
-void DataCollector::onGYROCallback(int index)
-{
-    m_GYROcb(m_GYROp, index);
-}
-
-void DataCollector::onAccelCallback(int index)
-{
-    m_Accelcb(m_Accelp, index);
-}
-
-void DataCollector::onPoseCallback(int index)
-{
-    m_Posecb(m_Posep, index);
-}
-
-void DataCollector::print()
-{
-    // Clear the current line
-    std::cout << '\r';
-
-    // Print out the EMG data.
-    for (size_t i = 0; i < emgSamples.size(); i++) {
-
-        std::ostringstream oss;
-        oss << static_cast<int>(emgSamples[i]);
-        std::string emgString = oss.str();
-
-        //std::cout << '[' << emgString << std::string(4 - emgString.size(), ' ') << ']';
-        std::cout << emgString << std::string(4 - emgString.size(), ' ');
-        std::cout << ",";
-    }
-
-    std::cout << counter;
-    std::cout << std::flush;
-}
-
-myo::Vector3<float> DataCollector::getAccelData() const
-{
-    return m_accelData;
-}
-myo::Pose DataCollector::getPose() const
-{
-    return pose;
-}
-
-void DataCollector::setPose(const myo::Pose &value)
-{
-    pose = value;
+    outletEMG->push_sample(emgVal, timestamp);
 }
 
 size_t DataCollector::identifyMyo(myo::Myo *myo) {
@@ -191,7 +171,6 @@ size_t DataCollector::identifyMyo(myo::Myo *myo) {
             return i + 1;
         }
     }
-
     return 0;
 }
 
@@ -199,33 +178,4 @@ int DataCollector::howManyMyo()
 {
     return knownMyos.size();
 }
-
-myo::Quaternion<float> DataCollector::getRotation() const
-{
-    return rotation;
-}
-
-void DataCollector::setRotation(const myo::Quaternion<float> &value)
-{
-    rotation = value;
-}
-
-
-std::vector<int> DataCollector::getData()
-{
-    vector<int> rawData;
-
-    // Print out the EMG data.
-    for (size_t i = 0; i < emgSamples.size(); i++) {
-        rawData.push_back(static_cast<int>(emgSamples[i]));
-    }
-
-    return rawData;
-}
-
-void DataCollector::resetCounter()
-{
-    counter = 0;
-}
-
 
